@@ -8,11 +8,18 @@ import (
 	"time"
 )
 
+type Operation int
+
+const (
+	Nothing Operation = iota // default
+	Increment
+	Decrement
+)
+
 type Request struct {
-	increment bool
-	decrement bool
-	get       chan int
-	done      chan bool
+	op   Operation
+	get  chan int
+	done chan bool
 }
 
 func numberServer(requests chan Request) {
@@ -20,15 +27,15 @@ func numberServer(requests chan Request) {
 	for {
 		select {
 		case req := <-requests:
-			switch {
-			case req.increment:
+			switch req.op {
+			case Increment:
 				i++
-			case req.decrement:
-				i--
-			case req.get != nil:
-				req.get <- i
-			case req.done != nil:
 				req.done <- true
+			case Decrement:
+				i--
+				req.done <- true
+			default:
+				req.get <- i
 			}
 		}
 	}
@@ -37,7 +44,7 @@ func numberServer(requests chan Request) {
 func incrementing(reqs chan Request, done chan bool) {
 	//TODO: increment i 1000000 times
 	for counter := 0; counter < 1000000; counter++ {
-		reqs <- Request{increment: true}
+		reqs <- Request{op: Increment}
 	}
 	reqs <- Request{done: done}
 }
@@ -45,7 +52,7 @@ func incrementing(reqs chan Request, done chan bool) {
 func decrementing(reqs chan Request, done chan bool) {
 	//TODO: decrement i 1000000 times
 	for counter := 0; counter < 1000000; counter++ {
-		reqs <- Request{decrement: true}
+		reqs <- Request{op: Decrement}
 	}
 	reqs <- Request{done: done}
 }
