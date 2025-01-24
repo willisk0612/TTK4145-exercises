@@ -1,3 +1,5 @@
+// This file defines types and functions for interfacing with the elevator hardware.
+// It establishes a TCP connection with the elevator server
 package elevio
 
 import (
