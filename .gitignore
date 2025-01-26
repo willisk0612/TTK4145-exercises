@@ -1,1 +1,3 @@
 *.exe
+!dev-tools/
+!dev-tools/**
