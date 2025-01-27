@@ -1,6 +1,6 @@
 /*
 features:
-1. Uttilizaes fsm package to create single elevator logic
+1. Utilizes fsm package to create single elevator logic
 2. Prints events from the driver
 3. Stops the elevator motor if obstruction switch is active, and opens the door
 4. Stops the elevator and turns off all lights if stop button is pressed
@@ -10,7 +10,7 @@ package main
 import (
 	"fmt"
 	"main/dev-tools/driver-go/elevio"
-	"main/src/exercise-3/fsm"
+	"main/src/exercise3/fsm"
 )
 
 func main() {
@@ -30,7 +30,6 @@ func main() {
 		elevator.Floor = initFloor
 	}
 
-	// Same channels as before
 	drv_buttons := make(chan elevio.ButtonEvent)
 	drv_floors := make(chan int)
 	drv_obstr := make(chan bool)
@@ -42,9 +41,9 @@ func main() {
 	go elevio.PollStopButton(drv_stop)
 
 	fmt.Println("Driver started")
-		for {
+	for {
 		select {
-			case btn := <-drv_buttons:
+		case btn := <-drv_buttons:
 			fmt.Printf("Button press: %+v\n", btn)
 			fmt.Printf("Current floor: %d\n", elevator.Floor)
 			elevator.Orders[btn.Floor][btn.Button] = 1
@@ -77,29 +76,29 @@ func main() {
 			}
 
 		case floor := <-drv_floors:
-		elevator.Floor = floor
-		elevio.SetFloorIndicator(floor)
+			elevator.Floor = floor
+			elevio.SetFloorIndicator(floor)
 
-		if elevator.ShouldStop() {
-			elevio.SetMotorDirection(elevio.MD_Stop)
-			elevator.Dir = elevio.MD_Stop
-			elevator.Behaviour = elevio.DoorOpen
-			elevio.SetDoorOpenLamp(true)
+			if elevator.ShouldStop() {
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				elevator.Dir = elevio.MD_Stop
+				elevator.Behaviour = elevio.DoorOpen
+				elevio.SetDoorOpenLamp(true)
 
-			// Clear completed orders
-			for b := elevio.ButtonType(0); b < elevio.N_BUTTONS; b++ {
-				elevator.Orders[floor][b] = 0
-				elevio.SetButtonLamp(b, floor, false)
+				// Clear completed orders
+				for b := elevio.ButtonType(0); b < elevio.N_BUTTONS; b++ {
+					elevator.Orders[floor][b] = 0
+					elevio.SetButtonLamp(b, floor, false)
+				}
 			}
-		}
 
-		// Edge case handling
-		if floor == 0 {
-			elevator.Orders[floor][elevio.BT_HallDown] = 0
-		}
-		if floor == numFloors-1 {
-			elevator.Orders[floor][elevio.BT_HallUp] = 0
-		}
+			// Edge case handling
+			if floor == 0 {
+				elevator.Orders[floor][elevio.BT_HallDown] = 0
+			}
+			if floor == numFloors-1 {
+				elevator.Orders[floor][elevio.BT_HallUp] = 0
+			}
 
 		case obstruction := <-drv_obstr:
 			if obstruction {

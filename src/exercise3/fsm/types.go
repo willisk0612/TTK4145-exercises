@@ -8,7 +8,7 @@ import (
 type Elevator struct {
 	Floor       int
 	Dir         elevio.MotorDirection
-	Orders    [elevio.N_FLOORS][elevio.N_BUTTONS]int
+	Orders      [elevio.N_FLOORS][elevio.N_BUTTONS]int
 	Behaviour   elevio.ElevatorBehaviour
 	Config      elevio.ElevatorConfig
 	DoorTimer   *time.Timer
