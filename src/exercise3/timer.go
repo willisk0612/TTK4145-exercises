@@ -2,42 +2,39 @@ package main
 
 import (
 	"time"
-	"fmt"
 )
 
-func (elevator *Elevator) TimerStart(duration time.Duration) {
-    elevator.TimerStop() // Ensure old timer is stopped
-    elevator.DoorTimer = time.NewTimer(duration)
-    elevator.TimerActive = true
-    fmt.Println("Door timer started")
+type TimerAction int
+
+const (
+	RESET TimerAction = iota
+	STOP
+)
+
+// Starts, stops or resets a door timer for a specified time
+func (elevator *Elevator) DoorTimer(duration *time.Timer, timeout chan bool, action <-chan TimerAction) {
+	for {
+		select {
+		case a := <-action:
+			switch a {
+			case RESET:
+				resetTimer(duration)
+			case STOP:
+				duration.Stop()
+			}
+		case <-duration.C:
+			timeout <- true
+		}
+	}
 }
 
-func (elevator *Elevator) TimerStop() {
-    if elevator.DoorTimer != nil {
-        elevator.DoorTimer.Stop()
-        select {
-        case <-elevator.DoorTimer.C: // Drain channel
-        default:
-        }
-    }
-    elevator.TimerActive = false
-}
-
-func (elevator *Elevator) TimerTimedOut() bool {
-    if !elevator.TimerActive || elevator.DoorTimer == nil {
-        return false
-    }
-
-    select {
-    case <-elevator.DoorTimer.C:
-        fmt.Println("Timer timed out - door should close")
-        elevator.TimerActive = false
-        return true
-    default:
-        return false
-    }
-}
-
-func (elevator *Elevator) ResetDoorTimer() {
-    elevator.TimerStart(elevator.Config.DoorOpenDuration)
+// Stops the timer and resets it
+func resetTimer(t *time.Timer) {
+	if !t.Stop() {
+		select {
+		case <-t.C:
+		default:
+		}
+	}
+    t.Reset(DOOR_OPEN_DURATION)
 }

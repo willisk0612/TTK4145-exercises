@@ -5,18 +5,19 @@ import (
 	"time"
 )
 
+const (
+	DOOR_OPEN_DURATION= 3 * time.Second
+)
+
+
+
 // Initializes elevator with default values. Moves elevator down if between floors.
 func InitElevator() Elevator {
 	elevator := Elevator{
-		Floor:       0,
-		Dir:         elevio.MD_Stop,
-		Orders:      [elevio.N_FLOORS][elevio.N_BUTTONS]int{},
-		Behaviour:   elevio.Idle,
-		Config: elevio.ElevatorConfig{
-			DoorOpenDuration: 3 * time.Second,
-		},
-		DoorTimer:   time.NewTimer(0),
-		TimerChan:   make(chan bool),
+		Dir:       elevio.MD_Stop,
+		Orders:    [elevio.N_FLOORS][elevio.N_BUTTONS]int{},
+		Behaviour: elevio.Idle,
+
 	}
 	// Move down to find a floor if starting between floors
 	if elevio.GetFloor() == -1 {
