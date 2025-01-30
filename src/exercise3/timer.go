@@ -36,5 +36,5 @@ func resetTimer(t *time.Timer) {
 		default:
 		}
 	}
-    t.Reset(DOOR_OPEN_DURATION)
+	t.Reset(DOOR_OPEN_DURATION)
 }

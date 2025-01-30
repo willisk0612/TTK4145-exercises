@@ -6,12 +6,12 @@ import (
 
 // Elevator type with methods for handling fsm events
 type Elevator struct {
-	Floor       int
-	Dir         elevio.MotorDirection
-	Orders      [elevio.N_FLOORS][elevio.N_BUTTONS]int
-	Behaviour   elevio.ElevatorBehaviour
-	Config      elevio.ElevatorConfig
-	Obstructed  bool
+	Floor      int
+	Dir        elevio.MotorDirection
+	Orders     [elevio.N_FLOORS][elevio.N_BUTTONS]int
+	Behaviour  elevio.ElevatorBehaviour
+	Config     elevio.ElevatorConfig
+	Obstructed bool
 }
 
 type DirnBehaviourPair struct {

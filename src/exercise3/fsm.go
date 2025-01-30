@@ -2,8 +2,8 @@
 package main
 
 import (
-	"log"
 	"io"
+	"log"
 	"main/dev-tools/driver-go/elevio"
 )
 
@@ -11,7 +11,6 @@ func init() {
 	// Disable logging
 	log.SetOutput(io.Discard)
 }
-
 
 // Moves elevator if order floor is different from current floor
 func (elevator *Elevator) HandleButtonPress(btn elevio.ButtonEvent, timerAction chan TimerAction) {
