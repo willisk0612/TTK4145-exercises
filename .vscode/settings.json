@@ -6,6 +6,10 @@
     "code-runner.ignoreSelection": true,
     "runTerminalCommand.commands": [
         {
+            "command": "go run ${file}",
+            "name": "Run Go File"
+        },
+        {
             "command": "goimports -w .",
             "name": "Format Go Files"
         },

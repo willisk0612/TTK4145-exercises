@@ -12,7 +12,7 @@ import (
 const (
 	N_FLOORS  = 4
 	N_BUTTONS = 3
-	POLLRATE  = 20 * time.Millisecond
+	POLLRATE  = 25 * time.Millisecond
 )
 
 var _initialized bool = false
@@ -48,20 +48,21 @@ const (
 	DoorOpen
 )
 
-type ClearRequestVariant int
+type ClearOrderVariant int
 
 const (
-	CV_All ClearRequestVariant = iota
+	CV_All ClearOrderVariant = iota
 	CV_InDirn
 )
 
 type ElevatorConfig struct {
-	ClearRequestVariant ClearRequestVariant
+	ClearOrderVariant ClearOrderVariant
 	DoorOpenDuration    time.Duration
 }
 
 type ElevInputDevice int
 
+// Initializes the TCP connection to the elevator server
 func Init(addr string, numFloors int) {
 	if _initialized {
 		fmt.Println("Driver already initialized!")
