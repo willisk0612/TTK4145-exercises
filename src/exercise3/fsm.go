@@ -36,6 +36,7 @@ func (elevator *Elevator) HandleButtonPress(btn elevio.ButtonEvent, timerAction 
 			elevator.Behaviour = pair.Behaviour
 			elevio.SetMotorDirection(elevator.Dir)
 		}
+	//case elevio.Error:
 	}
 }
 

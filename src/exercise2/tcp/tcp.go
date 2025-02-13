@@ -1,4 +1,4 @@
-package main
+package tcp
 
 import (
 	"bufio"
@@ -33,7 +33,7 @@ func handleError(err error, fatal bool, msg string) {
 	}
 }
 
-func main() {
+func RunTCP() {
 	server, err := setupServer()
 	handleError(err, true, "Server setup failed")
 	defer server.Listener.Close()

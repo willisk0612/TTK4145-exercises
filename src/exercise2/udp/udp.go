@@ -1,4 +1,4 @@
-package main
+package udp
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"time"
+	"syscall"
+	"context"
 )
 
 const (
@@ -14,6 +16,9 @@ const (
 	broadcastIP   = "255.255.255.255"
 	readTimeout   = 30 * time.Second
 )
+
+// Exported for use by other packages.
+var BroadcastPort = broadcastPort
 
 func handleError(err error, fatal bool) {
 	if err != nil {
@@ -24,12 +29,17 @@ func handleError(err error, fatal bool) {
 	}
 }
 
-func main() {
+// RunUDP is used to launch continuous UDP messaging.
+func RunUDP() {
 	host, err := getOwnIP()
 	handleError(err, false)
 
 	sendIPBroadcast(host, broadcastIP+broadcastPort)
-	listenForMessages(broadcastPort)
+	msg := "Hello"
+	go MsgTx(msg)
+	go MsgRx()
+
+	select {}
 }
 
 func getOwnIP() (string, error) {
@@ -58,7 +68,8 @@ func sendIPBroadcast(ipAddress, broadcastAddress string) {
 	log.Printf("Broadcasted own IP address: %s\n", ipAddress)
 }
 
-func sendMessage(serverAddress, message string) {
+// SendMessage is the exported version of sendMessage.
+func SendMessage(serverAddress, message string) {
 	addr, err := net.ResolveUDPAddr("udp", serverAddress)
 	handleError(err, true)
 
@@ -70,27 +81,44 @@ func sendMessage(serverAddress, message string) {
 	handleError(err, false)
 }
 
-func listenForMessages(port string) {
-	addr, err := net.ResolveUDPAddr("udp", port)
-	handleError(err, true)
-
-	conn, err := net.ListenUDP("udp", addr)
-	handleError(err, true)
-	defer conn.Close()
-
-	conn.SetReadDeadline(time.Now().Add(readTimeout))
-	log.Printf("Listening for incoming messages on port %s...\n", port)
-
-	buffer := make([]byte, 1024)
+func MsgTx(msg string) {
 	for {
-		n, addr, err := conn.ReadFromUDP(buffer)
-		if err != nil {
-			if os.IsTimeout(err) {
-				log.Println("Timeout reached, no more messages received.")
-				return
-			}
-			handleError(err, true)
-		}
-		log.Printf("Received message: %s from %s\n", string(buffer[:n]), addr)
+		time.Sleep(5 * time.Second)
+		SendMessage("127.0.0.1"+broadcastPort, msg)
 	}
+}
+
+func MsgRx() chan string {
+	msgChan := make(chan string)
+	go func() {
+		// Use ListenConfig with SO_REUSEADDR enabled.
+		lc := net.ListenConfig{
+			Control: func(network, address string, c syscall.RawConn) error {
+				var err error
+				c.Control(func(fd uintptr) {
+					err = syscall.SetsockoptInt(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+				})
+				return err
+			},
+		}
+
+		pc, err := lc.ListenPacket(context.Background(), "udp", broadcastPort)
+		handleError(err, true)
+		conn := pc.(*net.UDPConn)
+		defer conn.Close()
+
+		buffer := make([]byte, 1024)
+		for {
+			conn.SetReadDeadline(time.Now().Add(time.Second * 30))
+			n, _, err := conn.ReadFromUDP(buffer)
+			if err != nil {
+				if os.IsTimeout(err) {
+					continue
+				}
+				handleError(err, true)
+			}
+			msgChan <- string(buffer[:n])
+		}
+	}()
+	return msgChan
 }
