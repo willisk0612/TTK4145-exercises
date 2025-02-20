@@ -6,7 +6,6 @@ import config;
 
 import std.algorithm;
 import std.conv;
-import std.datetime;
 import std.range;
 import std.stdio;
 
@@ -16,7 +15,7 @@ import std.stdio;
 bool[][][string] optimalHallRequests(
     bool[2][]                       hallReqs,
     LocalElevatorState[string]      elevatorStates,
-)    
+)
 in {
         auto numFloors = hallReqs.length;
         assert(elevatorStates.length,
@@ -35,22 +34,22 @@ in {
 do {
     auto reqs   = hallReqs.toReq;
     auto states = initialStates(elevatorStates);
-    
+
     debug(optimal_hall_requests) writefln("\n   ---   START   ---   ");
     debug(optimal_hall_requests) writefln("states:\n  %(%s,\n  %)", states);
     debug(optimal_hall_requests) writefln("reqs:\n%(  %(%s, %)\n%)", reqs);
-    
+
     foreach(ref s; states){
         performInitialMove(s, reqs);
     }
-    
+
     while(true){
         states.sort!("a.time < b.time")();
-        
+
         debug(optimal_hall_requests) writeln;
         debug(optimal_hall_requests) writefln("states:\n  %(%s,\n  %)", states);
         debug(optimal_hall_requests) writefln("reqs:\n%(  %(%s, %)\n%)", reqs);
-    
+
         bool done = true;
         if(reqs.anyUnassigned){
             done = false;
@@ -60,18 +59,18 @@ do {
             assignImmediate(reqs, states);
             done = true;
         }
-        
+
         if(done){
             break;
         }
-        
+
         debug(optimal_hall_requests) writefln!("'%s' doing single move")(states[0].id);
         performSingleMove(states[0], reqs);
     }
-    
-    
+
+
     bool[][][string] result;
-    
+
     if(includeCab){
         foreach(id, _; elevatorStates){
             result[id] = new bool[][](hallReqs.length, 3);
@@ -84,7 +83,7 @@ do {
             result[id] = new bool[][](hallReqs.length, 2);
         }
     }
-    
+
     for(int f = 0; f < hallReqs.length; f++){
         for(int c = 0; c < 2; c++){
             if(reqs[f][c].active){
@@ -93,13 +92,13 @@ do {
         }
     }
 
-        
+
     debug(optimal_hall_requests) writefln("\nfinal:");
     debug(optimal_hall_requests) writefln("states:\n  %(%s,\n  %)", states);
     debug(optimal_hall_requests) writefln("reqs:\n%(  %(%s, %)\n%)", reqs);
     debug(optimal_hall_requests) writefln("result:\n%(  %s : %([%(%d, %)]%|, %)\n%)", result);
     debug(optimal_hall_requests) writefln("   ---    END    ---   \n");
-    
+
     return result;
 }
 
@@ -149,17 +148,20 @@ State[] initialStates(LocalElevatorState[string] states){
     return zip(states.keys, states.values)
         .sort!(q{a[0] < b[0]})
         .zip(iota(states.length))
-        .map!(a => 
+        .map!(a =>
             State(a[0][0], a[0][1], a[1].usecs)
         )
         .array;
 }
 
 
-
+/*
+This function:
+1. 
+*/
 void performInitialMove(ref State s, ref Req[2][] reqs){
     debug(optimal_hall_requests) writefln("initial move: %s", s);
-    final switch(s.state.behaviour) with(ElevatorBehaviour){    
+    final switch(s.state.behaviour) with(ElevatorBehaviour){
     case doorOpen:
         debug(optimal_hall_requests) writefln!("  '%s' closing door at floor %d")(s.id, s.state.floor);
         s.time += doorOpenDuration.msecs/2;
@@ -182,10 +184,10 @@ void performInitialMove(ref State s, ref Req[2][] reqs){
 }
 
 void performSingleMove(ref State s, ref Req[2][] reqs){
-    
+
     auto e = s.withReqs!(isUnassigned)(reqs);
     debug(optimal_hall_requests) writefln("%s", e);
-    
+
     auto onClearRequest = (CallType c){
         final switch(c) with(CallType){
         case hallUp, hallDown:
@@ -195,7 +197,7 @@ void performSingleMove(ref State s, ref Req[2][] reqs){
             s.state.cabRequests[s.state.floor] = false;
         }
     };
-    
+
     final switch(s.state.behaviour) with(ElevatorBehaviour){
     case moving:
         if(e.shouldStop){
@@ -211,7 +213,7 @@ void performSingleMove(ref State s, ref Req[2][] reqs){
         break;
     case idle, doorOpen:
         s.state.direction = e.chooseDirection;
-        if(s.state.direction == Dirn.stop){            
+        if(s.state.direction == Dirn.stop){
             if(e.anyRequestsAtFloor){
                 e.clearReqsAtFloor(onClearRequest);
                 s.time += doorOpenDuration.msecs;
@@ -229,7 +231,7 @@ void performSingleMove(ref State s, ref Req[2][] reqs){
         }
         break;
     }
-    
+
     debug(optimal_hall_requests) writefln("%s", s.withReqs!(isUnassigned)(reqs));
 }
 
@@ -265,7 +267,7 @@ void assignImmediate(ref Req[2][] reqs, ref State[] states){
                 }
             }
         }
-    }    
+    }
 }
 
 
@@ -289,7 +291,7 @@ unittest {
         [false, false],
         [false, false],
     ];
-    
+
 
     auto optimal = optimalHallRequests(hallreqs, states);
     assert(optimal == [
@@ -313,7 +315,7 @@ unittest {
         [true,  false],
         [false, false],
     ];
-    
+
 
     auto optimal = optimalHallRequests(hallreqs, states);
     assert(optimal == [
@@ -321,10 +323,10 @@ unittest {
         "2" : [[0,0],[0,0],[1,0],[0,0]].to!(bool[][]),
     ]);
 
-    
+
     // Change E1 idle->moving, stop->up. E1 is closer, but otherwise same scenario
     states = [
-        "1" : LocalElevatorState(ElevatorBehaviour.moving, 0, Dirn.up,   [0, 0, 0, 0].to!(bool[])), 
+        "1" : LocalElevatorState(ElevatorBehaviour.moving, 0, Dirn.up,   [0, 0, 0, 0].to!(bool[])),
         "2" : LocalElevatorState(ElevatorBehaviour.idle,   3, Dirn.stop, [0, 0, 0, 0].to!(bool[])),
     ];
 
@@ -333,8 +335,8 @@ unittest {
         "1" : [[0,0],[0,1],[0,0],[0,0]].to!(bool[][]),
         "2" : [[0,0],[0,0],[1,0],[0,0]].to!(bool[][]),
     ]);
-    
-    
+
+
     // Add cab order to E1, so that it has to continue upward anyway
     // Changes scenario, now E1 skips order in "wrong" direction because there is work ahead in that dirn
     states = [
@@ -363,7 +365,7 @@ unittest {
         [false, false],
         [false, false],
     ];
-    
+
     auto optimal = optimalHallRequests(hallreqs, states);
     assert(optimal == [
         "27" : [[1,0],[0,0],[0,0],[0,0]].to!(bool[][]),
@@ -377,7 +379,7 @@ unittest {
     auto prev = clearRequestType;
     clearRequestType = ClearRequestType.inDirn;
     scope(exit) clearRequestType = prev;
-    
+
     LocalElevatorState[string] states = [
         "1" : LocalElevatorState(ElevatorBehaviour.moving,  3,  Dirn.down, [1, 0, 0, 0].to!(bool[])),
         "2" : LocalElevatorState(ElevatorBehaviour.idle,    3,  Dirn.down, [0, 0, 0, 0].to!(bool[])),
@@ -389,7 +391,7 @@ unittest {
         [false, false],
         [false, false],
     ];
-        
+
     auto optimal = optimalHallRequests(hallreqs, states);
     assert(optimal == [
         "1" : [[0,0],[0,1],[0,0],[0,0]].to!(bool[][]),
@@ -412,10 +414,10 @@ unittest {
         [false, false],
         [false, true],
     ];
-    
+
 
     auto optimal = optimalHallRequests(hallreqs, states);
-    
+
     assert(optimal == [
         "1" : [[0,0], [0,0], [0,0], [0,1]].to!(bool[][]),
         "2" : [[1,0], [0,0], [0,0], [0,0]].to!(bool[][]),
@@ -430,7 +432,7 @@ unittest {
     auto prev = clearRequestType;
     clearRequestType = ClearRequestType.inDirn;
     scope(exit) clearRequestType = prev;
-    
+
     auto states = initialStates([
         "one" : LocalElevatorState(ElevatorBehaviour.idle,  0,  Dirn.stop,   [0, 0, 0, 0].to!(bool[])),
     ]);
@@ -441,11 +443,11 @@ unittest {
         [true,  true],
         [false, false],
     ].toReq;
-    
+
     while(hallreqs.anyUnassigned){
         performSingleMove(states[0], hallreqs);
     }
-    
+
     assert(states[0].time == (doorOpenDuration*4 + travelDuration*3).msecs);
 }
 
@@ -456,7 +458,7 @@ unittest {
     auto prev = clearRequestType;
     clearRequestType = ClearRequestType.inDirn;
     scope(exit) clearRequestType = prev;
-    
+
     LocalElevatorState[string] states = [
         "one" : LocalElevatorState(ElevatorBehaviour.idle,    0,  Dirn.down, [0, 0, 0, 0].to!(bool[])),
         "two" : LocalElevatorState(ElevatorBehaviour.idle,    3,  Dirn.down, [0, 0, 0, 0].to!(bool[])),
@@ -468,7 +470,7 @@ unittest {
         [true, false],
         [false, false],
     ];
-        
+
     auto optimal = optimalHallRequests(hallreqs, states);
     assert(optimal == [
         "one" : [[0,0],[1,0],[1,0],[0,0]].to!(bool[][]),
