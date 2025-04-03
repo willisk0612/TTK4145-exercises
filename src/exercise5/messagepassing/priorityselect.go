@@ -24,9 +24,9 @@ Hints:
         other stuff...
     }
     ```
- - You should not need a `busy` boolean (or any other variables for that matter).  
+ - You should not need a `busy` boolean (or any other variables for that matter).
    But you might find it useful when experimenting...
- - `select` can have a `default` case. 
+ - `select` can have a `default` case.
  - You will need to completely restructure the existing code, not just extend it
 */
 
@@ -35,22 +35,29 @@ type Resource struct {
 }
 
 
-func resourceManager(takeLow chan Resource, takeHigh chan Resource, giveBack chan Resource){
-
+func resourceManager(takeLow chan Resource, takeHigh chan Resource, giveBack chan Resource) {
     res := Resource{}
-    
     for {
         select {
-        case takeHigh<- res:
-            //fmt.Printf("[resource manager]: resource taken (high)\n")
-        case takeLow<- res:
-            //fmt.Printf("[resource manager]: resource taken (low)\n")
+        case takeHigh <- res:
+            res = <-giveBack
+            continue
         case res = <-giveBack:
-            //fmt.Printf("[resource manager]: resource returned\n")
+            continue
+        default:
+        }
+
+        // If we get here, no high priority requests were waiting
+        select {
+        case takeHigh <- res:
+            res = <-giveBack
+        case takeLow <- res:
+            res = <-giveBack
+        case res = <-giveBack:
         }
     }
 }
-    
+
 
 // --- RESOURCE USERS -- //
 
@@ -62,18 +69,18 @@ type ResourceUserConfig struct {
 }
 
 func resourceUser(cfg ResourceUserConfig, take chan Resource, giveBack chan Resource){
-        
+
     time.Sleep(time.Duration(cfg.release) * tick)
-    
+
     executionStates[cfg.id] = waiting
     res := <-take
-    
+
     executionStates[cfg.id] = executing
-    
+
     time.Sleep(time.Duration(cfg.execution) * tick)
     res.value = append(res.value, cfg.id)
     giveBack <- res
-    
+
     executionStates[cfg.id] = done
 }
 
@@ -83,14 +90,14 @@ func main(){
     takeHigh    := make(chan Resource)
     giveBack    := make(chan Resource)
     go resourceManager(takeLow, takeHigh, giveBack)
-    
+
     executionStates = make([]ExecutionState, 10)
 
     cfgs := []ResourceUserConfig{
         {0, 0, 1, 1},
         {1, 0, 3, 1},
         {2, 1, 5, 1},
-        
+
         {0, 1, 10, 2},
         {1, 0, 11, 1},
         {2, 1, 11, 1},
@@ -100,7 +107,7 @@ func main(){
         {6, 1, 11, 1},
         {7, 0, 11, 1},
         {8, 1, 11, 1},
-        
+
         {0, 1, 25, 3},
         {6, 0, 26, 2},
         {7, 0, 26, 2},
@@ -110,7 +117,7 @@ func main(){
         {4, 1, 29, 2},
         {5, 1, 30, 2},
     }
-    
+
     go executionLogger()
     for _, cfg := range cfgs {
         if cfg.priority == 1 {
@@ -119,10 +126,10 @@ func main(){
             go resourceUser(cfg, takeLow, giveBack)
         }
     }
-    
+
     // (no way to join goroutines, hacking it with sleep)
     time.Sleep(time.Duration(45) * tick)
-    
+
     executionOrder := <-takeHigh
     fmt.Println("Execution order:", executionOrder)
 }
@@ -147,14 +154,14 @@ var executionStates []ExecutionState
 func executionLogger(){
     time.Sleep(tick/2)
     t := 0
-    
-    
+
+
     fmt.Printf("  id:")
     for id, _ := range executionStates {
         fmt.Printf("%3d", id)
     }
     fmt.Printf("\n")
-    
+
     for {
         grid := ' ';
         if t % 5 == 0 {

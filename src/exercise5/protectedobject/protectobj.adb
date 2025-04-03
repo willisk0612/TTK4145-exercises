@@ -29,23 +29,26 @@ procedure protectobj is
         busy: Boolean := False;
     end Resource;
     protected body Resource is
-    
-        entry allocateLow(val: out IntVec.Vector) when True is
+
+        entry allocateLow(val: out IntVec.Vector) when not busy and allocateHigh'Count = 0 is
         begin
             --Put_Line("allocateLow");
             val := value;
+            busy := True;
         end allocateLow;
-    
-        entry allocateHigh(val: out IntVec.Vector) when True is
+
+        entry allocateHigh(val: out IntVec.Vector) when not busy is
         begin
             --Put_Line("allocateHigh");
             val := value;
+            busy := True;
         end allocateHigh;
 
         procedure deallocate(val: IntVec.Vector) is
         begin
             --Put_Line("deallocate");
             value := val;
+            busy := False;
         end deallocate;
 
     end Resource;
@@ -59,29 +62,29 @@ procedure protectobj is
 
     task type resourceUser(
         id:         Integer;
-        priority:   Integer; 
-        release:    Integer; 
-        execute:    Integer; 
+        priority:   Integer;
+        release:    Integer;
+        execute:    Integer;
         r:          access Resource
     );
         value: IntVec.Vector;
     task body resourceUser is
     begin
         delay Duration(tick * Float(release));
-        
+
         executionStates(id) := waiting;
         if priority = 1 then
             r.allocateHigh(value);
         else
             r.allocateLow(value);
         end if;
-        
+
         executionStates(id) := executing;
-        
+
         delay Duration(tick * Float(execute));
         value.Append(id);
         r.deallocate(value);
-        
+
         executionStates(id) := done;
     end resourceUser;
 
@@ -128,20 +131,20 @@ procedure protectobj is
         end loop;
     end executionLogger;
 
-    
+
     r:              aliased Resource;
     logger:         executionLogger;
     executionOrder: IntVec.Vector;
-    
+
 begin
     Put_Line("started");
-    
+
     declare
-    
+
         user00: resourceUser(0, 0, 1,  1, r'Access);
         user01: resourceUser(1, 0, 3,  1, r'Access);
         user02: resourceUser(2, 1, 5,  1, r'Access);
-        
+
         user03: resourceUser(0, 1, 10, 2, r'Access);
         user04: resourceUser(1, 0, 11, 1, r'Access);
         user05: resourceUser(2, 1, 11, 1, r'Access);
@@ -151,7 +154,7 @@ begin
         user09: resourceUser(6, 1, 11, 1, r'Access);
         user10: resourceUser(7, 0, 11, 1, r'Access);
         user11: resourceUser(8, 1, 11, 1, r'Access);
-        
+
         user12: resourceUser(0, 1, 25, 3, r'Access);
         user13: resourceUser(6, 0, 26, 2, r'Access);
         user14: resourceUser(7, 0, 26, 2, r'Access);
@@ -163,12 +166,12 @@ begin
     begin
         null;
     end;
-    
-    delay Duration(tick * 2.0);    
+
+    delay Duration(tick * 2.0);
     abort logger;
-    
+
     r.allocateHigh(executionOrder);
-    
+
     Put_Line("Execution order: ");
     for idx in executionOrder.Iterate loop
         Put(Integer'Image(executionOrder(idx)));

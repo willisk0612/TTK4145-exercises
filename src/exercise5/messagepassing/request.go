@@ -27,7 +27,7 @@ Hints:
         other stuff...
     }
     ```
- - Use the priority queue (scroll down below `main()`. And remember the type-assertion thing:  
+ - Use the priority queue (scroll down below `main()`. And remember the type-assertion thing:
     ```Go
     request := queue.Front().(ResourceRequest)
     ```
@@ -46,16 +46,23 @@ type ResourceRequest struct {
 func resourceManager(askFor chan ResourceRequest, giveBack chan Resource){
 
     res     := Resource{}
-    //busy    := false
-    //queue   := PriorityQueue{}
+    busy    := false
+    queue   := PriorityQueue{}
 
     for {
+        if !busy && !queue.Empty() {
+            request := queue.Front().(ResourceRequest)
+            queue.PopFront()
+            request.channel <- res
+            busy = true
+            continue
+        }
         select {
         case request := <-askFor:
-            //fmt.Printf("[resource manager]: received request: %+v\n", request)
-            request.channel <- res
-        case res = <-giveBack:
-            //fmt.Printf("[resource manager]: resource returned\n")
+            queue.Insert(request, request.priority)
+        case r := <-giveBack:
+            busy = false
+            res = r
         }
     }
 }
